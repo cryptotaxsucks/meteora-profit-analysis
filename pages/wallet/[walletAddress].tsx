@@ -5,26 +5,27 @@ import { Summary } from "@/components/summary";
 import { AppState } from "@/pages/_app";
 import DefaultLayout from "@/layouts/default";
 import { FullPageSpinner } from "@/components/full-page-spinner";
+import DownloadWorker from '@/workers/download.worker.ts';
 
 export default function IndexPage() {
   const appState = useContext(AppState);
   const router = useRouter();
 
-  const [downloadWorker, setDownloadWorker] = useState(
-    undefined as Worker | undefined,
-  );
+  const [downloadWorker, setDownloadWorker] = useState<Worker>();
 
   useEffect(() => {
-    if (router.query.walletAddress && !downloadWorker) {
-      loadTransactions(router.query.walletAddress as string);
-    }
-  }, [router.query.walletAddress]);
+  const w = new DownloadWorker();
+  setDownloadWorker(w);
+  return () => w.terminate();
+}, []);
 
-  async function loadTransactions(walletAddress: string) {
-    if (!downloadWorker) {
-      const worker = new Worker(
-        new URL("../../public/workers/download-worker", import.meta.url),
-      );
+  // @ts-ignore
+import DataWorker from "@/workers/data.worker.ts";
+
+...
+
+const dbWorker = new DataWorker();
+
 
       worker.postMessage({
         rpc: appState.rpc,
