@@ -9,7 +9,7 @@ import { Connection } from "@solana/web3.js";
 import { fontSans, fontMono } from "@/config/fonts";
 import "@/styles/globals.css";
 
-const RPC_URL = "https://grateful-jerrie-fast-mainnet.helius-rpc.com";
+const RPC_URL = "https://mainnet.helius-rpc.com/?api-key=f681d37d-4557-4e5f-9389-87c842a98eda";
 
 export interface AppStateInterface {
   rpc: string;
