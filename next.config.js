@@ -1,17 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  productionBrowserSourceMaps: true,
-  webpack: (config) => {
-    config.resolve.fallback = {
-      fs: false,
-    };
+  webpack(config) {
     config.module.rules.push({
       test: /\.worker\.(js|ts)$/i,
-      use: { loader: 'worker-loader', options: { inline: true } },
+      use: { loader: "worker-loader", options: { inline: "no-fallback" } },
     });
+    config.resolve.extensions.push(".worker.ts", ".worker.js");
     return config;
   },
-}
-
-module.exports = nextConfig
+  // (Optional) while iterating, you can unblock builds:
+  // eslint: { ignoreDuringBuilds: true },
+};
+module.exports = nextConfig;
