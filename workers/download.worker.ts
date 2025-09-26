@@ -27,9 +27,10 @@ self.onmessage = async (event: MessageEvent<string | DataWorkerParameters>) => {
   let start: number;
   let dbReadTime = 0;
 
-  const dbWorker = new Worker(
-    new URL("../../public/workers/data-worker", import.meta.url),
-  );
+  // ✅ new
+/* @ts-ignore */
+import DataWorker from "@/workers/data.worker.ts";
+const dbWorker = new DataWorker();
 
   dbWorker.onmessage = async (
     event: MessageEvent<string | MeteoraDlmmDbTransactions[]>,
