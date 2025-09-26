@@ -9,7 +9,11 @@ import { Connection } from "@solana/web3.js";
 import { fontSans, fontMono } from "@/config/fonts";
 import "@/styles/globals.css";
 
-const RPC_URL = "https://mainnet.helius-rpc.com/?api-key=f681d37d-4557-4e5f-9389-87c842a98eda";
+// pages/_app.tsx
+const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC;
+if (!RPC_URL) {
+  console.error("NEXT_PUBLIC_SOLANA_RPC is not set");
+}
 
 console.log('Initializing Solana Connection with RPC:', RPC_URL);
 
