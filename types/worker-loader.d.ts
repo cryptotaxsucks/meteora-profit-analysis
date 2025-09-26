@@ -1,6 +1,6 @@
 // types/worker-loader.d.ts
 
-// Support importing workers WITH or WITHOUT the .ts/.js extension.
+// Make imports like `import W from "@/workers/download.worker"` constructable
 declare module "*.worker" {
   const WorkerFactory: new () => Worker;
   export default WorkerFactory;
@@ -14,7 +14,7 @@ declare module "*.worker.js" {
   export default WorkerFactory;
 }
 
-// Also support the explicit loader prefix form, if ever used.
+// Support the explicit loader form if ever used: `worker-loader!./x.worker.ts`
 declare module "worker-loader!*" {
   const WorkerFactory: new () => Worker;
   export default WorkerFactory;
