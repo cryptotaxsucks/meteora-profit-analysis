@@ -11,6 +11,16 @@ import "@/styles/globals.css";
 
 const RPC_URL = "https://mainnet.helius-rpc.com/?api-key=f681d37d-4557-4e5f-9389-87c842a98eda";
 
+console.log('Initializing Solana Connection with RPC:', RPC_URL);
+
+let connection;
+try {
+  connection = new Connection(RPC_URL, 'confirmed');
+  console.log('Solana Connection initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Solana Connection:', error);
+}
+
 export interface AppStateInterface {
   rpc: string;
   connection: Connection | undefined;
