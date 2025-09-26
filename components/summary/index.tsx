@@ -151,12 +151,10 @@ export const Summary = (props: { downloadWorker: Worker }) => {
 
       const data: WorkerPayload = event.data ?? {};
 
-      // mark done if reported
       if (data.stats?.downloadingComplete) {
         setDone(true);
       }
 
-      // Update stats if present (use local var to satisfy TS)
       if (data.stats) {
         const s = data.stats;
         setStats((prev) => ({
@@ -167,16 +165,12 @@ export const Summary = (props: { downloadWorker: Worker }) => {
         }));
       }
 
-      // Update transactions/summary if present
       const txs = data.transactions ?? [];
       if (txs.length > 0) {
         const sum = generateSummary(txs);
         setSummary(sum);
         setAllTransactions(txs);
-
         if (!initialized) setInitialized(true);
-
-        // Re-apply current (or default) filters to new txs
         filterTransactions(txs, filter);
       }
     },
