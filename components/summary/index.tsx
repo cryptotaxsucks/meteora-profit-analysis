@@ -1,3 +1,4 @@
+// components/summary/index.tsx
 import { MeteoraDlmmDbTransactions } from "@geeklad/meteora-dlmm-db/dist/meteora-dlmm-db";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/router";
@@ -14,7 +15,14 @@ import {
   SummaryData,
 } from "@/components/summary/generate-summary";
 import { SummaryTop } from "@/components/summary/top";
-import type { DataWorkerMessage } from "@/workers/data.worker";
+
+// Local, flexible type for worker messages (avoids TS errors on 'stats')
+type WorkerMessage = {
+  stats?: Partial<MeteoraDlmmDownloaderStats> & {
+    downloadingComplete?: boolean;
+  };
+  transactions?: MeteoraDlmmDbTransactions[];
+} | string;
 
 export const Summary = (props: { downloadWorker: Worker }) => {
   const router = useRouter();
@@ -76,6 +84,21 @@ export const Summary = (props: { downloadWorker: Worker }) => {
     [allTransactions],
   );
 
+  const updateQuoteTokenDisplay = useCallback(
+    (sum: SummaryData, displayUsd: boolean) => {
+      setQuoteTokenDisplay(
+        Array.from(sum.quote.values()).map((s) => (
+          <QuoteTokenDisplay
+            key={s.token.mint}
+            displayUsd={displayUsd}
+            summary={s}
+          />
+        )),
+      );
+    },
+    [],
+  );
+
   const filterTransactions = useCallback(
     (
       transactions: MeteoraDlmmDbTransactions[],
@@ -90,31 +113,16 @@ export const Summary = (props: { downloadWorker: Worker }) => {
             }
           : getDefaultFilter();
 
-        const filteredTransactions = applyFilter(transactions, newFilter);
-        const filteredSummary = generateSummary(filteredTransactions);
+        const filteredTx = applyFilter(transactions, newFilter);
+        const filteredSum = generateSummary(filteredTx);
 
-        setFilteredSummary(filteredSummary);
-        updateQuoteTokenDisplay(filteredSummary, newFilter.displayUsd);
+        setFilteredSummary(filteredSum);
+        updateQuoteTokenDisplay(filteredSum, newFilter.displayUsd);
 
         return updatedFilter;
       });
     },
-    [getDefaultFilter],
-  );
-
-  const updateQuoteTokenDisplay = useCallback(
-    (summary: SummaryData, displayUsd: boolean) => {
-      setQuoteTokenDisplay(
-        Array.from(summary.quote.values()).map((s) => (
-          <QuoteTokenDisplay
-            key={s.token.mint}
-            displayUsd={displayUsd}
-            summary={s}
-          />
-        )),
-      );
-    },
-    [],
+    [getDefaultFilter, updateQuoteTokenDisplay],
   );
 
   const cancel = useCallback(() => {
@@ -124,57 +132,70 @@ export const Summary = (props: { downloadWorker: Worker }) => {
 
   const resetFilters = useCallback(() => {
     filterTransactions(allTransactions, undefined, true);
-  }, [allTransactions, filterTransactions, getDefaultFilter]);
+  }, [allTransactions, filterTransactions]);
 
   function resetDatabase() {
     props.downloadWorker.postMessage("reset");
   }
 
   const update = useCallback(
-    (event: MessageEvent<DataWorkerMessage>) => {
-      if (typeof event.data == "string") {
-        if (event.data == "reset") {
+    (event: MessageEvent<WorkerMessage>) => {
+      // Handle string control messages
+      if (typeof event.data === "string") {
+        if (event.data === "reset") {
           window.location.reload();
-
           return;
         }
-        throw new Error(
-          `Received unexpected message "${event.data}" from download worker!`,
-        );
+        // Unexpected string – ignore safely
+        return;
       }
-      if (event.data.stats.downloadingComplete) {
-        setDone(true);
-      }
-      const { transactions, stats } = event.data;
 
-      if (transactions.length > 0) {
-        setStats(stats);
-        setSummary(generateSummary(transactions));
-        setAllTransactions(transactions);
-        if (!initialized) {
-          setInitialized(true);
-        }
-        filterTransactions(transactions, filter);
+      const data = event.data || {};
+      const downloadingComplete = !!data.stats?.downloadingComplete;
+      if (downloadingComplete) setDone(true);
+
+      const txs = data.transactions ?? [];
+
+      // Update stats if provided
+      if (data.stats) {
+        setStats((prev) => ({
+          ...prev,
+          ...data.stats,
+          // Ensure required fields aren't accidentally undefined
+          downloadingComplete:
+            data.stats.downloadingComplete ?? prev.downloadingComplete,
+        }));
+      }
+
+      if (txs.length > 0) {
+        const sum = generateSummary(txs);
+        setSummary(sum);
+        setAllTransactions(txs);
+
+        if (!initialized) setInitialized(true);
+
+        // Re-apply current (or default) filters to new txs
+        filterTransactions(txs, filter);
       }
     },
-    [filterTransactions, getDefaultFilter, initialized, filter],
+    [filterTransactions, initialized, filter],
   );
 
   useEffect(() => {
     if (router.query.walletAddress) {
+      // Attach message handler
       props.downloadWorker.onmessage = update;
 
+      // Track elapsed time
       const durationHandle = setInterval(() => {
         setDuration(Date.now() - start);
       }, 1000);
 
       return () => {
-        if (done) {
-          clearInterval(durationHandle);
-        }
+        clearInterval(durationHandle);
       };
     }
-  }, [router.query.walletAddress, props.downloadWorker, start, done, update]);
+  }, [router.query.walletAddress, props.downloadWorker, start, update]);
 
   if (!initialized) {
     return <FullPageSpinner excludeLayout={true} />;
