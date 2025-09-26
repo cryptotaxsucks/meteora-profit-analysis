@@ -14,7 +14,7 @@ import {
   SummaryData,
 } from "@/components/summary/generate-summary";
 import { SummaryTop } from "@/components/summary/top";
-import { DataWorkerMessage } from "@/public/workers/download-worker";
+import type { DataWorkerMessage } from "@/workers/data.worker";
 
 export const Summary = (props: { downloadWorker: Worker }) => {
   const router = useRouter();
