@@ -1,40 +1,42 @@
-import { useContext, useEffect, useState } from "react";
+// pages/wallet/[walletAddress].tsx
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
-import { Summary } from "@/components/summary";
-import { AppState } from "@/pages/_app";
+// UI + app bits
 import DefaultLayout from "@/layouts/default";
 import { FullPageSpinner } from "@/components/full-page-spinner";
-import DownloadWorker from '@/workers/download.worker.ts';
+import { Summary } from "@/components/summary";
 
-export default function IndexPage() {
-  const appState = useContext(AppState);
-  const router = useRouter();
+// IMPORTANT: use the bundled worker import (no /public, no new URL(...))
+/* @ts-ignore - handled by types/worker-loader.d.ts */
+import DownloadWorker from "@/workers/download.worker.ts";
 
-  const [downloadWorker, setDownloadWorker] = useState<Worker>();
+export default function WalletPage() {
+  // (Router is kept in case Summary relies on the dynamic route internally)
+  const _router = useRouter();
+
+  // Hold the worker instance in state so React re-renders once it's ready
+  const [downloadWorker, setDownloadWorker] = useState<Worker | null>(null);
 
   useEffect(() => {
-  const w = new DownloadWorker();
-  setDownloadWorker(w);
-  return () => w.terminate();
-}, []);
+    // Create the worker once on mount
+    const w = new DownloadWorker();
+    setDownloadWorker(w);
 
-  // @ts-ignore
-import DataWorker from "@/workers/data.worker.ts";
+    // Optional: listen for a 'ready' handshake if your worker posts it
+    // const onMessage = (e: MessageEvent) => {
+    //   if (e.data === "ready") { /* stop any local loading states if needed */ }
+    // };
+    // w.addEventListener("message", onMessage);
 
-...
+    // Cleanup on unmount
+    return () => {
+      // w.removeEventListener("message", onMessage);
+      w.terminate();
+    };
+  }, []);
 
-const dbWorker = new DataWorker();
-
-
-      worker.postMessage({
-        rpc: appState.rpc,
-        walletAddress,
-      });
-      setDownloadWorker(worker);
-    }
-  }
-
+  // Until the worker is created, show the spinner
   if (!downloadWorker) {
     return <FullPageSpinner />;
   }
