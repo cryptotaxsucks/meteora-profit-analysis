@@ -8,7 +8,7 @@ const nextConfig = {
     config.resolve.extensions.push(".worker.ts", ".worker.js");
     return config;
   },
-  // (Optional) while iterating, you can unblock builds:
+  // Optional while stabilizing CI:
   // eslint: { ignoreDuringBuilds: true },
 };
 module.exports = nextConfig;
