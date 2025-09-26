@@ -10,32 +10,28 @@ import { fontSans, fontMono } from "@/config/fonts";
 import "@/styles/globals.css";
 
 // pages/_app.tsx
-const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC;
-if (!RPC_URL) {
-  console.error("NEXT_PUBLIC_SOLANA_RPC is not set");
-}
+const RPC_URL: string = process.env.NEXT_PUBLIC_SOLANA_RPC || "";
 
-console.log('Initializing Solana Connection with RPC:', RPC_URL);
-
-let connection;
+let connection: Connection | undefined;
 try {
-  connection = new Connection(RPC_URL, 'confirmed');
-  console.log('Solana Connection initialized successfully');
+  if (!RPC_URL) {
+    // Optional: remove these console lines if you want a silent build.
+    // eslint-disable-next-line no-console
+    console.warn("NEXT_PUBLIC_SOLANA_RPC is not set; RPC-dependent features may not work.");
+  } else {
+    connection = new Connection(RPC_URL, "confirmed");
+    // eslint-disable-next-line no-console
+    console.log("Solana Connection initialized successfully");
+  }
 } catch (error) {
-  console.error('Failed to initialize Solana Connection:', error);
+  // eslint-disable-next-line no-console
+  console.error("Failed to initialize Solana Connection:", error);
 }
 
-export interface AppStateInterface {
-  rpc: string;
-  connection: Connection | undefined;
-  verifyingRpc: boolean;
-  updateRpc: (newRpc: string) => void;
-  transactionCount: number;
-  setTransactionCount: Dispatch<SetStateAction<number>>;
+export default function MyApp({ Component, pageProps }: AppProps) {
+  // If you later want to provide `connection` via context, you can do it here.
+  return <Component {...pageProps} />;
 }
-export const AppState = createContext({} as AppStateInterface);
-
-export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [rpc, setRpc] = useState(RPC_URL);
   const [connection, setConnection] = useState(
