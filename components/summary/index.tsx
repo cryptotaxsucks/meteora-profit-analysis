@@ -16,13 +16,14 @@ import {
 } from "@/components/summary/generate-summary";
 import { SummaryTop } from "@/components/summary/top";
 
-// Local, flexible type for worker messages (avoids TS errors on 'stats')
-type WorkerMessage = {
+// Flexible types for worker payloads
+type WorkerPayload = {
   stats?: Partial<MeteoraDlmmDownloaderStats> & {
     downloadingComplete?: boolean;
   };
   transactions?: MeteoraDlmmDbTransactions[];
-} | string;
+};
+type WorkerMessage = WorkerPayload | string;
 
 export const Summary = (props: { downloadWorker: Worker }) => {
   const router = useRouter();
@@ -144,29 +145,30 @@ export const Summary = (props: { downloadWorker: Worker }) => {
       if (typeof event.data === "string") {
         if (event.data === "reset") {
           window.location.reload();
-          return;
         }
-        // Unexpected string – ignore safely
         return;
       }
 
-      const data = event.data || {};
-      const downloadingComplete = !!data.stats?.downloadingComplete;
-      if (downloadingComplete) setDone(true);
+      const data: WorkerPayload = event.data ?? {};
 
-      const txs = data.transactions ?? [];
+      // mark done if reported
+      if (data.stats?.downloadingComplete) {
+        setDone(true);
+      }
 
-      // Update stats if provided
+      // Update stats if present (use local var to satisfy TS)
       if (data.stats) {
+        const s = data.stats;
         setStats((prev) => ({
           ...prev,
-          ...data.stats,
-          // Ensure required fields aren't accidentally undefined
+          ...s,
           downloadingComplete:
-            data.stats.downloadingComplete ?? prev.downloadingComplete,
+            s.downloadingComplete ?? prev.downloadingComplete,
         }));
       }
 
+      // Update transactions/summary if present
+      const txs = data.transactions ?? [];
       if (txs.length > 0) {
         const sum = generateSummary(txs);
         setSummary(sum);
@@ -183,10 +185,8 @@ export const Summary = (props: { downloadWorker: Worker }) => {
 
   useEffect(() => {
     if (router.query.walletAddress) {
-      // Attach message handler
       props.downloadWorker.onmessage = update;
 
-      // Track elapsed time
       const durationHandle = setInterval(() => {
         setDuration(Date.now() - start);
       }, 1000);
@@ -198,7 +198,7 @@ export const Summary = (props: { downloadWorker: Worker }) => {
   }, [router.query.walletAddress, props.downloadWorker, start, update]);
 
   if (!initialized) {
-    return <FullPageSpinner excludeLayout={true} />;
+    return <FullPageSpinner excludeLayout />;
   }
 
   return (
